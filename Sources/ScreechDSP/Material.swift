@@ -108,6 +108,8 @@ public struct Material: Sendable, Identifiable {
 
     /// Loudness of the recorded drag sound, when the material has one.
     public var sampleGain: Float = 1.6
+    /// Loudness of the recorded resize sound, when the material has one.
+    public var resizeSampleGain: Float = 1.6
 
     // Resize: a bowed friction oscillator (stick-slip), plus some of the drag rub
     public var squealMin: Float = 100          // Hz while crawling

@@ -110,7 +110,7 @@ struct MenuView: View {
         VStack(alignment: .leading, spacing: 10) {
             sliderRow("Volume", value: $model.volume, low: "speaker.fill", high: "speaker.wave.3.fill")
             sliderRow("Ring", value: $model.ring, low: "hand.draw", high: "bell.fill")
-                .help("How much the material resonates: left is a dry scrape, right rings like the material")
+                .help("How much wood, rubber and stone ring when you resize a window: left is dry, right rings")
             sliderRow("Reverb", value: $model.reverb, low: "square", high: "square.stack.3d.up.fill")
             Toggle("Drag sounds", isOn: $model.dragSounds)
             Toggle("Resize sounds", isOn: $model.resizeSounds)

@@ -12,13 +12,18 @@ public struct DragSample: Sendable {
 }
 
 public enum DragSamples {
-    /// Loads `<material id>.wav` for every material found in `directory`. Missing files are skipped,
-    /// and that material falls back to the synthesized scrape.
+    /// `<material id>-resize.wav` holds a material's resize sound.
+    public static let resizeSuffix = "-resize"
+
+    /// Loads `<material id>.wav` (drag) and `<material id>-resize.wav` (resize) for every material
+    /// found in `directory`, keyed by file name without the extension. Missing files are skipped,
+    /// and that material falls back to the synthesized scrape or squeal.
     public static func load(from directory: URL, materials: [Material] = Materials.all) -> [String: DragSample] {
         var out: [String: DragSample] = [:]
         for m in materials {
-            let url = directory.appendingPathComponent("\(m.id).wav")
-            if let s = try? loadWAV(url) { out[m.id] = s }
+            for key in [m.id, m.id + resizeSuffix] {
+                if let s = try? loadWAV(directory.appendingPathComponent("\(key).wav")) { out[key] = s }
+            }
         }
         return out
     }

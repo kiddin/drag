@@ -16,6 +16,9 @@ SOURCES = {
     "stone": ("stone-door", 12),
     "glass": ("glass-bottles", 12, 0, 15, 0.15),   # short and patchy: keep the quieter parts too
     "rubber": ("rubber-box", 12),
+    # Resize sounds, for the materials that have one; the others use the synthesized squeal.
+    "metal-resize": ("metal-bend", 12),
+    "glass-resize": ("glass-finger", 12),
 }
 SR = 48000
 

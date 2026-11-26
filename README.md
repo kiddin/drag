@@ -51,11 +51,11 @@ The sound isn't a loop that starts and stops. It tracks how you move:
 |---|---|---|
 | **Wood** | Furniture dragged over a floor | Slow creak |
 | **Rubber** | A box squeaking along on rubber feet | Balloon screech that rises as you stretch |
-| **Metal** | A heavy metal pipe dragged over concrete | Groaning squeal that rings out |
-| **Glass** | Glass grinding on glass | Wet-finger squeak |
+| **Metal** | A heavy metal pipe dragged over concrete | A piece of metal bending |
+| **Glass** | Glass grinding on glass | A finger squeaking on glass |
 | **Stone** | A heavy stone slab grinding like a dungeon door | Rumbling grind |
 
-Drags play real recordings, with a muffled thud when you grab and let go. Resizes are synthesized from a physical model of the material.
+Drags play real recordings, with a muffled thud when you grab and let go. Metal and glass resizes are recordings too; wood, rubber and stone resizes are synthesized from a physical model of the material.
 
 ## The menu
 
@@ -64,7 +64,7 @@ Drags play real recordings, with a muffled thud when you grab and let go. Resize
 | Material | Wood | The sound theme |
 | Try drag / Try resize | | Plays a scripted gesture so you can hear a material without moving a window |
 | Volume | 70% | Overall loudness |
-| Ring | 100% | How much the material resonates when you resize: left is dry, right rings |
+| Ring | 100% | How much wood, rubber and stone ring when you resize: left is dry, right rings |
 | Reverb | 35% | A small room around the sound |
 | Drag sounds / Resize sounds | On | Turn either kind off |
 | Launch at login | Off | Start Screech when you log in |
@@ -101,7 +101,7 @@ Everything runs on the audio thread with no locks and no allocation; the tracker
 
 - **Drag** plays the material's recording as overlapping 160 ms grains taken from random places, so it never audibly loops. Its pitch barely moves with speed, a semitone either way, because a real object being dragged faster gets louder and grittier, not higher. Speed comes through as loudness and brightness, with a low-pass filter that opens as you speed up.
 - **Grab and release** are a short, muffled thud: a low, quickly damped knock with no ring, like a heavy object being picked up or set down. Bigger windows thud lower.
-- **Resize** is a bowed-string friction model (the stick-slip that makes a wet finger squeal on glass): speed sets pitch and pressure, and growing bends the pitch up while shrinking bends it down. It rings a bank of up to 48 resonant modes laid out like a real plate of the material.
+- **Resize** plays a recording the same way for metal (a piece of metal bending) and glass (a finger squeaking on glass). For wood, rubber and stone it is a bowed-string friction model (the stick-slip that makes a wet finger squeal on glass): speed sets pitch and pressure, and growing bends the pitch up while shrinking bends it down. It rings a bank of up to 48 resonant modes laid out like a real plate of the material.
 - **Room.** An 8-line feedback delay network reverb, a gentle compressor and a soft clipper.
 
 </details>
@@ -109,7 +109,7 @@ Everything runs on the audio thread with no locks and no allocation; the tracker
 <details>
 <summary><b>The recordings</b></summary>
 
-All five are public domain (CC0) from freesound.org; [`Resources/Samples/CREDITS.md`](Resources/Samples/CREDITS.md) lists each one and its author. `scripts/prepare_samples.py` keeps only the steady dragging parts of each, removes pauses and stray knocks, and evens out the loudness.
+All the recordings are public domain (CC0) from freesound.org; [`Resources/Samples/CREDITS.md`](Resources/Samples/CREDITS.md) lists each one and its author. `scripts/prepare_samples.py` keeps only the steady dragging parts of each, removes pauses and stray knocks, and evens out the loudness.
 
 </details>
 

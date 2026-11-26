@@ -58,5 +58,10 @@ final class SampleVoiceTests: XCTestCase {
             XCTAssertGreaterThan(Float(s.samples.count) / s.sampleRate, 1.5, m.id)
             XCTAssertGreaterThan(rms(steady(speed: 800, material: Materials.index(of: m.id), samples: loaded)), 0.05, m.id)
         }
+        // Metal and glass resize with recordings too.
+        for id in ["metal", "glass"] {
+            let s = try XCTUnwrap(loaded[id + DragSamples.resizeSuffix], "missing \(id)-resize.wav")
+            XCTAssertGreaterThan(Float(s.samples.count) / s.sampleRate, 1.5, id)
+        }
     }
 }

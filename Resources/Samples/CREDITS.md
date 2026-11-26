@@ -10,6 +10,8 @@ All recordings are from freesound.org under CC0 1.0 (public domain); no attribut
 | stone.wav | [Stone Slab Door Grinding - Heavy Rock Scrape](https://freesound.org/people/NahuelMartinez/sounds/844329/) | NahuelMartinez |
 | glass.wav | [Scraping_Glass](https://freesound.org/people/wjb_88/sounds/828862/) | wjb_88 |
 | rubber.wav | [Drag Heavy Box Over Table, Squeaking Noise](https://freesound.org/people/Kinoton/sounds/368312/) | Kinoton |
+| metal-resize.wav | [Metal Bend.wav](https://freesound.org/people/pwausc1/sounds/118262/) | pwausc1 |
+| glass-resize.wav | [Squeak Finger on Glass.wav](https://freesound.org/people/mickdow/sounds/320912/) | mickdow |
 
 Also downloaded and considered: [Dragging on wood](https://freesound.org/people/Black0032/sounds/721414/) (Black0032),
 [Metal Drag One](https://freesound.org/people/belanhud/sounds/543632/) (belanhud),
@@ -29,4 +31,10 @@ Also downloaded and considered: [Dragging on wood](https://freesound.org/people/
 [GlassPyrexMeasuringCupMugSlideTableDesk.aif](https://freesound.org/people/SpliceSound/sounds/143965/) (SpliceSound),
 [pickles jar slide on table](https://freesound.org/people/Kirbeast6/sounds/727357/) (Kirbeast6),
 [Pushing glass across table](https://freesound.org/people/whi1ter1ce/sounds/708074/) (whi1ter1ce),
-[Glass Slide 8](https://freesound.org/people/WasabiWielder/sounds/323422/) (WasabiWielder).
+[Glass Slide 8](https://freesound.org/people/WasabiWielder/sounds/323422/) (WasabiWielder);
+for resizing: [Glass Squeaking.aif](https://freesound.org/people/ftpalad/sounds/119916/) (ftpalad),
+[Glass /window cleaning](https://freesound.org/people/peqdavid5/sounds/580553/) (peqdavid5),
+[Sliding on wet glass](https://freesound.org/people/cabled_mess/sounds/571241/) (cabled_mess),
+[Metallic Groan](https://freesound.org/people/hinchinbrook/sounds/496836/) (hinchinbrook),
+[Bending Metal](https://freesound.org/people/NachtmahrTV/sounds/556714/) (NachtmahrTV),
+[metal crank groan.flac](https://freesound.org/people/kyles/sounds/453333/) (kyles).

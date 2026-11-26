@@ -19,8 +19,11 @@ public final class Synth {
 
     private var slide: SlideVoice
     private var sampleVoice: SampleVoice
+    private var resizeVoice: SampleVoice
     /// Recorded drag sound per material (nil = synthesized scrape).
     private let sampleBuffers: [(pointer: UnsafeMutablePointer<Float>, count: Int, rate: Float)?]
+    /// Recorded resize sound per material (nil = synthesized squeal).
+    private let resizeBuffers: [(pointer: UnsafeMutablePointer<Float>, count: Int, rate: Float)?]
     private var stretch: StretchVoice
     private var impact: Impact
     private var thud: Thud
@@ -89,13 +92,16 @@ public final class Synth {
         modesRight = materials.map { $0.body.modes(pickup: 1) }
         slide = SlideVoice(sampleRate: sampleRate, texture: textures[0])
         sampleVoice = SampleVoice(sampleRate: sampleRate)
-        sampleBuffers = materials.map { m in
-            guard let s = samples[m.id], !s.samples.isEmpty else { return nil }
+        resizeVoice = SampleVoice(sampleRate: sampleRate)
+        func buffer(_ key: String) -> (pointer: UnsafeMutablePointer<Float>, count: Int, rate: Float)? {
+            guard let s = samples[key], !s.samples.isEmpty else { return nil }
             let p = UnsafeMutablePointer<Float>.allocate(capacity: s.samples.count + 1)
             p.initialize(from: s.samples, count: s.samples.count)
             p[s.samples.count] = 0
             return (p, s.samples.count, s.sampleRate)
         }
+        sampleBuffers = materials.map { buffer($0.id) }
+        resizeBuffers = materials.map { buffer($0.id + DragSamples.resizeSuffix) }
         stretch = StretchVoice(sampleRate: sampleRate)
         impact = Impact(sampleRate: sampleRate)
         thud = Thud(sampleRate: sampleRate)
@@ -117,7 +123,7 @@ public final class Synth {
 
     deinit {
         for t in textures { t.deallocate() }
-        for b in sampleBuffers { b?.pointer.deallocate() }
+        for b in sampleBuffers + resizeBuffers { b?.pointer.deallocate() }
     }
 
     /// True once every voice and the reverb tail have died away and nothing is asked for.
@@ -138,6 +144,9 @@ public final class Synth {
         let b = sampleBuffers[i]
         sampleVoice.configure(buffer: b.map { UnsafePointer($0.pointer) }, count: b?.count ?? 0,
                               sourceRate: b?.rate ?? sampleRate, gain: m.sampleGain)
+        let rb = resizeBuffers[i]
+        resizeVoice.configure(buffer: rb.map { UnsafePointer($0.pointer) }, count: rb?.count ?? 0,
+                              sourceRate: rb?.rate ?? sampleRate, gain: m.resizeSampleGain)
         stretch.configure(m)
         impact.configure(m)
         configureBanks()
@@ -204,7 +213,13 @@ public final class Synth {
         } else {
             slide.control(s: norm * (dragGate + resizeGate * rub), jerk: jerk)
         }
-        stretch.control(s: norm * resizeGate, grow: grow)
+        if resizeVoice.hasSample {
+            // A recorded squeak or groan replaces the synthesized squeal.
+            resizeVoice.control(s: norm * resizeGate, jerk: jerk)
+            stretch.control(s: 0, grow: grow)
+        } else {
+            stretch.control(s: norm * resizeGate, grow: grow)
+        }
         // Equal-power balance of the stereo body, unity in the centre.
         let angle = (pan + 1) * 0.25 * Float.pi
         gainL = min(cosf(angle) * 1.41421356, 1.3)
@@ -241,6 +256,7 @@ public final class Synth {
             let s = recorded ? .zero : slide.tick(pxPerSample: speed * (dragGate + resizeGate * rub) / sampleRate)
             let drag = recorded ? sampleVoice.tick() : 0
             let r = stretch.tick()
+            let resized = resizeVoice.hasSample ? resizeVoice.tick() : 0
             let k = impact.tick()
             let cont = s.cont + r.cont
             // With a recording, grab and release are a muffled thud: ringing the modelled body would
@@ -249,8 +265,8 @@ public final class Synth {
             let imp = s.imp + r.imp + (recorded ? 0 : k.imp)
             let dry = (s.direct + r.direct + (recorded ? 0 : k.direct)) * (1 - bodyMix) + knock
             // A recording already contains its material's body, so it bypasses the resonators.
-            var l = (dry + drag + bankL.tick(cont: cont, imp: imp) * bodyMix) * level * gainL
-            var rr = (dry + drag + bankR.tick(cont: cont, imp: imp) * bodyMix) * level * gainR
+            var l = (dry + drag + resized + bankL.tick(cont: cont, imp: imp) * bodyMix) * level * gainL
+            var rr = (dry + drag + resized + bankR.tick(cont: cont, imp: imp) * bodyMix) * level * gainR
 
             let wet = reverb.tick((l + rr) * 0.5 * reverbSend * reverbAmount)
             l += wet.left

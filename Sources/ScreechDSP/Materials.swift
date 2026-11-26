@@ -48,7 +48,7 @@ public enum Materials {
         b.fundamental = 260; b.aspect = 1.37; b.count = 40; b.jitter = 0.01
         b.t60 = 2.4; b.dampingFreq = 6000; b.dampingExp = 0.8; b.tilt = 0.4; b.seed = 33
         var m = Material(id: "metal", name: "Metal", symbol: "gearshape.fill",
-                         blurb: "A heavy metal pipe dragged over concrete, groaning squeal.", body: b)
+                         blurb: "A heavy metal pipe dragged over concrete; metal bending when stretched.", body: b)
         m.bodyMix = 0.7; m.reverbSend = 1.0
         m.impactsPerPixel = 0.8; m.impactTail = 2.5; m.contactHardness = 9000; m.contactGain = 1
         m.hiss = 0.4; m.textureDensity = 10; m.textureRoughness = 0.75
@@ -59,6 +59,7 @@ public enum Materials {
         m.growBend = 0.4; m.stretchGain = 1.4; m.stretchRub = 0.2
         m.impactGain = 0.9; m.contactTime = 0.0006; m.impactNoise = 0.3; m.impactBrightness = 7000
         m.sampleGain = 2.6   // the pipe recording is quieter than the others
+        m.resizeSampleGain = 1.8   // metal bending, on resize
         return m
     }()
 
@@ -67,7 +68,7 @@ public enum Materials {
         b.fundamental = 900; b.aspect = 1.15; b.count = 30; b.jitter = 0.005
         b.t60 = 1.3; b.dampingFreq = 7000; b.dampingExp = 0.9; b.tilt = 0.5; b.seed = 44
         var m = Material(id: "glass", name: "Glass", symbol: "wineglass.fill",
-                         blurb: "Glass grinding on glass, wet-finger squeak on stretch.", body: b)
+                         blurb: "Glass grinding on glass; a finger squeaking on glass when stretched.", body: b)
         m.bodyMix = 0.6; m.reverbSend = 1.0
         m.impactsPerPixel = 0.25; m.impactTail = 3; m.contactHardness = 8000; m.contactGain = 0.8
         m.hiss = 0.7; m.textureDensity = 4; m.textureRoughness = 0.15
@@ -78,6 +79,7 @@ public enum Materials {
         m.growBend = 0.35; m.stretchGain = 1.4; m.stretchRub = 0.1
         m.impactGain = 0.6; m.contactTime = 0.0004; m.impactNoise = 0.2; m.impactBrightness = 9000
         m.sampleGain = 1.95   // the bottles recording is a little quieter than the others
+        m.resizeSampleGain = 1.95   // a finger squeaking on glass, on resize
         return m
     }()
 
