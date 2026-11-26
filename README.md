@@ -12,15 +12,15 @@
 
 <p align="center">
   <a href="https://github.com/kiddin/drag/releases/latest"><b>Download</b></a> ·
-  <a href="docs/demo.mp4"><b>Watch the demo (sound on)</b></a> ·
+  <a href="https://github.com/kiddin/drag/raw/main/docs/demo.mp4"><b>Watch the demo (sound on)</b></a> ·
   <a href="#how-it-works">How it works</a>
 </p>
 
 <p align="center">
-  <a href="docs/demo.mp4"><img src="docs/demo.gif" width="720" alt="A window being dragged, with a hand speed meter"></a>
+  <a href="https://github.com/kiddin/drag/raw/main/docs/demo.mp4"><img src="docs/demo.gif" width="720" alt="A window being dragged, with a hand speed meter"></a>
 </p>
 
-<p align="center"><sub>The GIF is silent. <a href="docs/demo.mp4">The video</a> has the sound, rendered by the app's own engine.</sub></p>
+<p align="center"><sub>The GIF is silent. <a href="https://github.com/kiddin/drag/raw/main/docs/demo.mp4">The video</a> (1 MB) has the sound, rendered by the app's own engine.</sub></p>
 
 ---
 
