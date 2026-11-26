@@ -54,7 +54,8 @@ final class SampleVoiceTests: XCTestCase {
         let loaded = DragSamples.load(from: dir)
         for m in Materials.all {
             let s = try XCTUnwrap(loaded[m.id], "missing \(m.id).wav")
-            XCTAssertGreaterThan(Float(s.samples.count) / s.sampleRate, 3, m.id)
+            // Grains need half a second; under about 1.5 s a recording starts to sound repetitive.
+            XCTAssertGreaterThan(Float(s.samples.count) / s.sampleRate, 1.5, m.id)
             XCTAssertGreaterThan(rms(steady(speed: 800, material: Materials.index(of: m.id), samples: loaded)), 0.05, m.id)
         }
     }

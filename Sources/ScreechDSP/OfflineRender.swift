@@ -2,15 +2,16 @@ import Foundation
 
 /// Renders a scripted gesture through the full pipeline (analyzer -> control -> synth).
 public enum OfflineRender {
-    public static func gesture(_ kind: DemoMotion.Kind, material: Int, ring: Float = 1, samples: [String: DragSample] = [:], sampleRate: Float = 48000, tail: Double = 0.9)
+    public static func gesture(_ kind: DemoMotion.Kind, material: Int, style: DemoMotion.Style = .uneven, volume: Float = 1,
+                               ring: Float = 1, samples: [String: DragSample] = [:], sampleRate: Float = 48000, tail: Double = 0.9)
         -> (left: [Float], right: [Float])
     {
         let control = ControlBlock()
         control.ring = ring
         let synth = Synth(sampleRate: sampleRate, control: control, samples: samples)
         control.material = material
-        control.volume = 1
-        let frames = DemoMotion.frames(kind)
+        control.volume = volume
+        let frames = DemoMotion.frames(kind, style: style)
         var analyzer = MotionAnalyzer()
         analyzer.begin(frame: frames[0].frame, time: 0, desktopMinX: 0, desktopWidth: 2000)
         control.sizeScale = Float(analyzer.sizeScale)

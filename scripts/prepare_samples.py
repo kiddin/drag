@@ -9,11 +9,12 @@ usage: python3 scripts/prepare_samples.py <dir with 48 kHz mono 16-bit wavs> Res
 import sys, wave, os
 import numpy as np
 
-SOURCES = {  # material: (file, max seconds kept)
+# material: (file, max seconds kept[, pitch shift in semitones[, steady threshold dB, shortest run s]])
+SOURCES = {
     "wood": ("wood-furniture", 12),
-    "metal": ("metal-stool", 12),
+    "metal": ("metal-pipe", 12, -5),   # a lower, heavier pipe
     "stone": ("stone-door", 12),
-    "glass": ("glass-bowl", 12),
+    "glass": ("glass-bottles", 12, 0, 15, 0.15),   # short and patchy: keep the quieter parts too
     "rubber": ("rubber-box", 12),
 }
 SR = 48000
@@ -37,13 +38,13 @@ def highpass(x, fc=40.0):
         return y
     return run(run(x)[::-1])[::-1]
 
-def steady_runs(x, min_len=0.4):
+def steady_runs(x, min_len=0.4, threshold=9):
     hop = SR // 20  # 50 ms frames
     n = len(x) // hop
     db = np.array([10 * np.log10((x[i*hop:(i+1)*hop] ** 2).mean() + 1e-12) for i in range(n)])
     db = np.convolve(db, np.ones(3) / 3, mode="same")
     ref = np.percentile(db, 90)
-    on = db > ref - 9
+    on = db > ref - threshold
     # a frame much louder than its neighbours is a knock, not dragging
     spike = db > np.convolve(db, np.ones(9) / 9, mode="same") + 8
     on &= ~spike
@@ -58,9 +59,10 @@ def steady_runs(x, min_len=0.4):
 def main(src, dst):
     fade = int(0.02 * SR)
     credits = []
-    for material, (name, cap) in SOURCES.items():
+    for material, (name, cap, *opts) in SOURCES.items():
+        pitch = opts[0] if opts else 0
         x = highpass(load(os.path.join(src, name + ".wav")))
-        runs = steady_runs(x)
+        runs = steady_runs(x, *reversed(opts[1:3])) if len(opts) >= 3 else steady_runs(x)
         out = np.zeros(0)
         for a, b in runs:
             seg = x[a:b].copy()
@@ -76,7 +78,8 @@ def main(src, dst):
         out *= 10 ** (-20 / 20) / np.sqrt((out ** 2).mean())   # -20 dBFS RMS
         out = np.clip(out, -1, 1)
         with wave.open(os.path.join(dst, material + ".wav"), "wb") as w:
-            w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR)
+            # A pitch shift is just a different playback rate: the app resamples to the output rate.
+            w.setnchannels(1); w.setsampwidth(2); w.setframerate(round(SR * 2 ** (pitch / 12)))
             w.writeframes((out * 32767).astype("<i2").tobytes())
         print(f"{material:7s} from {name:15s} {len(runs):3d} runs -> {len(out)/SR:5.1f}s  "
               + ", ".join(f"{a/SR:.1f}-{b/SR:.1f}" for a, b in runs[:8]) + (" ..." if len(runs) > 8 else ""))

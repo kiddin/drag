@@ -113,8 +113,9 @@ struct SampleVoice {
     /// `s` is normalised speed 0...1, `jerk` 0...1 a sudden speed-up.
     mutating func control(s: Float, jerk: Float) {
         ampTarget = s < 1e-4 ? 0 : gain * powf(s, 0.85) * (1 + 0.5 * jerk)
-        // Speed shifts the recording's pitch within a natural range: crawl 0.7x, fling 1.45x.
-        rateTarget = 0.7 + 0.75 * s
+        // A real object barely changes pitch with speed; it gets louder and grittier. So speed
+        // nudges the playback rate by about a semitone either way: crawl 0.94x, fling 1.06x.
+        rateTarget = 0.94 + 0.12 * s
         let cutoff = 1500 + 18000 * powf(s, 0.6)
         lowpass.set(cutoff: min(cutoff, sampleRate * 0.45), q: 0.6, sampleRate: sampleRate)
     }
@@ -129,7 +130,7 @@ struct SampleVoice {
     @inline(__always) mutating func tick() -> Float {
         guard buffer != nil else { return 0 }
         amp += (ampTarget - amp) * 0.004
-        rate += (rateTarget - rate) * 0.002
+        rate += (rateTarget - rate) * 0.0002   // ~100 ms glide, so hand jitter never wobbles the pitch
         if ampTarget == 0 && amp < 1e-5 { return 0 }
 
         let step = Double(rate * sourceStep)

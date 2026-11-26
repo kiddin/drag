@@ -23,6 +23,7 @@ public final class Synth {
     private let sampleBuffers: [(pointer: UnsafeMutablePointer<Float>, count: Int, rate: Float)?]
     private var stretch: StretchVoice
     private var impact: Impact
+    private var thud: Thud
     private let bankL = ModalBank()
     private let bankR = ModalBank()
     private let reverb: Reverb
@@ -97,6 +98,7 @@ public final class Synth {
         }
         stretch = StretchVoice(sampleRate: sampleRate)
         impact = Impact(sampleRate: sampleRate)
+        thud = Thud(sampleRate: sampleRate)
         reverb = Reverb(sampleRate: sampleRate)
         attack = smoothingCoef(seconds: 0.012, sampleRate: sampleRate)
         release = smoothingCoef(seconds: 0.035, sampleRate: sampleRate)
@@ -241,8 +243,11 @@ public final class Synth {
             let r = stretch.tick()
             let k = impact.tick()
             let cont = s.cont + r.cont
-            let imp = s.imp + r.imp + k.imp
-            let dry = (s.direct + r.direct + k.direct) * (1 - bodyMix)
+            // With a recording, grab and release are a muffled thud: ringing the modelled body would
+            // sound like a different object from the one in the recording.
+            let knock = recorded ? thud.tick(force: k.imp, noise: k.direct, scale: sizeScale) : 0
+            let imp = s.imp + r.imp + (recorded ? 0 : k.imp)
+            let dry = (s.direct + r.direct + (recorded ? 0 : k.direct)) * (1 - bodyMix) + knock
             // A recording already contains its material's body, so it bypasses the resonators.
             var l = (dry + drag + bankL.tick(cont: cont, imp: imp) * bodyMix) * level * gainL
             var rr = (dry + drag + bankR.tick(cont: cont, imp: imp) * bodyMix) * level * gainR
@@ -269,5 +274,43 @@ public final class Synth {
             idle = true
         }
         return true
+    }
+}
+
+/// A muffled knock: a heavy object picked up or set down. A low, quickly damped resonance plus a
+/// low-passed contact noise, with no ring. Bigger windows thud lower.
+struct Thud {
+    private let sampleRate: Float
+    private var scale: Float = 0
+    private var a1: Float = 0
+    private var a2: Float = 0
+    private var b: Float = 0
+    private var y1: Float = 0
+    private var y2: Float = 0
+    private var lowpass = SVF()
+
+    init(sampleRate: Float) {
+        self.sampleRate = sampleRate
+        lowpass.set(cutoff: 600, q: 0.6, sampleRate: sampleRate)
+        setScale(1)
+    }
+
+    private mutating func setScale(_ scale: Float) {
+        self.scale = scale
+        let w = 2 * Float.pi * 105 * scale / sampleRate
+        let r = powf(0.001, 1 / (0.07 * sampleRate))   // 70 ms decay
+        a1 = 2 * r * cosf(w)
+        a2 = -r * r
+        b = sinf(w)
+    }
+
+    /// `force` is the knock's contact pulse, `noise` its contact noise.
+    @inline(__always) mutating func tick(force: Float, noise: Float, scale: Float) -> Float {
+        if scale != self.scale { setScale(scale) }
+        if force == 0 && noise == 0 && abs(y1) < 1e-6 && abs(y2) < 1e-6 { return 0 }
+        let y = b * force + a1 * y1 + a2 * y2
+        y2 = y1
+        y1 = y
+        return y * 0.25 + lowpass.tick(noise).low * 0.4
     }
 }

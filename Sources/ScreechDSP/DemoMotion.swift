@@ -1,16 +1,19 @@
 import Foundation
 
-/// A scripted, uneven hand gesture: crawl, fling, slow down, pause, jerks, reversal, crawl.
-/// Used by the preview renderer and the app's "Try it" buttons.
+/// Scripted hand gestures. `.uneven` (crawl, fling, slow down, pause, jerks, reversal, crawl)
+/// exercises every edge case and drives the previews, tests and the app's "Try it" buttons.
+/// `.smooth` is a calm, natural hand for the README demo video.
 public enum DemoMotion {
     public enum Kind: Sendable { case drag, resize }
+    public enum Style: Sendable { case uneven, smooth }
 
     /// Time at which the scripted hand lets go.
     public static let duration = 3.45
     public static let start = Rect(x: 500, y: 300, width: 900, height: 600)
 
     /// Speed (pt/s) and direction (+1 / -1) at time `t`.
-    public static func profile(_ t: Double) -> (speed: Double, dir: Double) {
+    public static func profile(_ t: Double, style: Style = .uneven) -> (speed: Double, dir: Double) {
+        if style == .smooth { return smooth(t) }
         func lerp(_ a: Double, _ b: Double, _ x: Double) -> Double { a + (b - a) * min(max(x, 0), 1) }
         let base: (Double, Double)
         switch t {
@@ -30,9 +33,27 @@ public enum DemoMotion {
         return (base.0 * tremor, base.1)
     }
 
+    /// Glide out and settle, pause, glide back and come to rest.
+    static func smooth(_ t: Double) -> (speed: Double, dir: Double) {
+        func bell(_ a: Double, _ b: Double, _ peak: Double) -> Double {
+            let x = (t - a) / (b - a)
+            return x <= 0 || x >= 1 ? 0 : peak * pow(sin(.pi * x), 2)
+        }
+        let base: (Double, Double)
+        switch t {
+        case ..<0.2: base = (0, 1)                                  // grabbed
+        case ..<1.5: base = (bell(0.2, 1.5, 950) + 50, 1)            // glide out
+        case ..<1.85: base = (0, 1)                                 // pause
+        case ..<3.0: base = (bell(1.85, 3.0, 700) + 50, -1)          // glide back
+        case ..<duration: base = (60 * (duration - t) / 0.45, -1)    // settle
+        default: base = (0, -1)
+        }
+        return (base.0 * (1 + 0.05 * sin(2 * .pi * 5.1 * t)), base.1)
+    }
+
     /// Window frames sampled at `rate` Hz. The frame itself only changes at
     /// `windowServerRate`, like a real window server, so many samples repeat.
-    public static func frames(_ kind: Kind, rate: Double = 120, windowServerRate: Double = 60) -> [(time: Double, frame: Rect)] {
+    public static func frames(_ kind: Kind, style: Style = .uneven, rate: Double = 120, windowServerRate: Double = 60) -> [(time: Double, frame: Rect)] {
         var x = start.x, y = start.y, w = start.width, h = start.height
         var result: [(Double, Rect)] = []
         let fine = 1.0 / 2000
@@ -41,7 +62,7 @@ public enum DemoMotion {
         var shown = start
         var lastServerTick = -1
         while t <= duration {
-            let (v, dir) = profile(t)
+            let (v, dir) = profile(t, style: style)
             switch kind {
             case .drag:
                 let angle = 0.25 * sin(1.3 * t)

@@ -51,11 +51,11 @@ The sound isn't a loop that starts and stops. It tracks how you move:
 |---|---|---|
 | **Wood** | Furniture dragged over a floor | Slow creak |
 | **Rubber** | A box squeaking along on rubber feet | Balloon screech that rises as you stretch |
-| **Metal** | A metal stool pushed across a floor | Groaning squeal that rings out |
-| **Glass** | A glass bowl sliding on a countertop | Wet-finger squeak |
+| **Metal** | A heavy metal pipe dragged over concrete | Groaning squeal that rings out |
+| **Glass** | Glass grinding on glass | Wet-finger squeak |
 | **Stone** | A heavy stone slab grinding like a dungeon door | Rumbling grind |
 
-Drags play real recordings. Resizes and knocks are synthesized from a physical model of the material.
+Drags play real recordings, with a muffled thud when you grab and let go. Resizes are synthesized from a physical model of the material.
 
 ## The menu
 
@@ -64,7 +64,7 @@ Drags play real recordings. Resizes and knocks are synthesized from a physical m
 | Material | Wood | The sound theme |
 | Try drag / Try resize | | Plays a scripted gesture so you can hear a material without moving a window |
 | Volume | 70% | Overall loudness |
-| Ring | 100% | How much the material resonates on resize and knocks: left is dry, right rings |
+| Ring | 100% | How much the material resonates when you resize: left is dry, right rings |
 | Reverb | 35% | A small room around the sound |
 | Drag sounds / Resize sounds | On | Turn either kind off |
 | Launch at login | Off | Start Screech when you log in |
@@ -99,9 +99,9 @@ On a press, Screech finds the window under the pointer in `CGWindowListCopyWindo
 
 Everything runs on the audio thread with no locks and no allocation; the tracker talks to it through atomics.
 
-- **Drag** plays the material's recording as overlapping 160 ms grains taken from random places, so it never audibly loops. The playback rate follows your speed, from 0.7x at a crawl to 1.45x on a fling, the way a real object sounds lower and duller when pushed slowly. A low-pass filter opens with speed too.
-- **Resize** is a bowed-string friction model (the stick-slip that makes a wet finger squeal on glass): speed sets pitch and pressure, and growing bends the pitch up while shrinking bends it down.
-- **Knocks** on grab, release and direction reversals are short contact pulses into a bank of up to 48 resonant modes, laid out like a real plate of the material.
+- **Drag** plays the material's recording as overlapping 160 ms grains taken from random places, so it never audibly loops. Its pitch barely moves with speed, a semitone either way, because a real object being dragged faster gets louder and grittier, not higher. Speed comes through as loudness and brightness, with a low-pass filter that opens as you speed up.
+- **Grab and release** are a short, muffled thud: a low, quickly damped knock with no ring, like a heavy object being picked up or set down. Bigger windows thud lower.
+- **Resize** is a bowed-string friction model (the stick-slip that makes a wet finger squeal on glass): speed sets pitch and pressure, and growing bends the pitch up while shrinking bends it down. It rings a bank of up to 48 resonant modes laid out like a real plate of the material.
 - **Room.** An 8-line feedback delay network reverb, a gentle compressor and a soft clipper.
 
 </details>

@@ -66,32 +66,38 @@ if let i = CommandLine.arguments.firstIndex(of: "--demo"), i + 1 < CommandLine.a
     var csv = "segment,material,kind,time,x,y,width,height,speed,held\n"
     var hand = "time,speed,level\n"
     for (index, (id, kind)) in segments.enumerated() {
-        let (l, r) = OfflineRender.gesture(kind, material: Materials.index(of: id), samples: samples)
+        // A calm hand at the app's default volume, like a real drag, not the edge-case gesture.
+        let (l, r) = OfflineRender.gesture(kind, material: Materials.index(of: id), style: .smooth, volume: 0.7, samples: samples)
         let start = Double(left.count) / Double(sr)
         left += l + [Float](repeating: 0, count: Int(gap * Double(sr)))
         right += r + [Float](repeating: 0, count: Int(gap * Double(sr)))
-        let frames = DemoMotion.frames(kind)
+        let frames = DemoMotion.frames(kind, style: .smooth)
         let length = Double(l.count) / Double(sr) + gap
         let name = Materials.all[Materials.index(of: id)].name
         var t = 0.0
         while t < length {
             let f = frames.last { $0.time <= t }?.frame ?? frames[0].frame
             let held = t < DemoMotion.duration
-            let v = held ? DemoMotion.profile(t).speed : 0
+            let v = held ? DemoMotion.profile(t, style: .smooth).speed : 0
             csv += String(format: "%d,%@,%@,%.4f,%.1f,%.1f,%.1f,%.1f,%.1f,%d\n", index, name,
                           kind == .drag ? "drag" : "resize", start + t, f.x, f.y, f.width, f.height, v, held ? 1 : 0)
             t += 1 / fps
         }
-        if index == 0 {
-            let hop = sr / 100
-            for k in 0..<(l.count / hop) {
-                let tt = Double(k) / 100
-                var peak: Float = 0
-                for j in (k * hop)..<((k + 1) * hop) { peak = max(peak, abs(l[j]), abs(r[j])) }
-                hand += String(format: "%.2f,%.1f,%.4f\n", tt, tt < DemoMotion.duration ? DemoMotion.profile(tt).speed : 0, peak)
-            }
-        }
     }
+    // The chart uses the uneven gesture: it shows more of how the sound follows the hand.
+    let (hl, hr) = OfflineRender.gesture(.drag, material: Materials.index(of: "wood"), volume: 0.7, samples: samples)
+    let hop = sr / 100
+    for k in 0..<(hl.count / hop) {
+        let tt = Double(k) / 100
+        var peak: Float = 0
+        for j in (k * hop)..<((k + 1) * hop) { peak = max(peak, abs(hl[j]), abs(hr[j])) }
+        hand += String(format: "%.2f,%.1f,%.4f\n", tt, tt < DemoMotion.duration ? DemoMotion.profile(tt).speed : 0, peak)
+    }
+    // Bring the whole track up to -1 dBFS peak with plain gain: louder, with no added distortion.
+    let peak = zip(left, right).reduce(Float(0)) { max($0, abs($1.0), abs($1.1)) }
+    let gain = peak > 0 ? 0.89 / peak : 1
+    left = left.map { $0 * gain }
+    right = right.map { $0 * gain }
     try OfflineRender.wav(left: left, right: right, sampleRate: sr).write(to: dir.appendingPathComponent("audio.wav"))
     try csv.write(to: dir.appendingPathComponent("frames.csv"), atomically: true, encoding: .utf8)
     try hand.write(to: dir.appendingPathComponent("hand.csv"), atomically: true, encoding: .utf8)
