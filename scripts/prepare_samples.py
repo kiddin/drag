@@ -12,7 +12,7 @@ import numpy as np
 SOURCES = {  # material: (file, max seconds kept)
     "wood": ("wood-furniture", 12),
     "metal": ("metal-stool", 12),
-    "stone": ("stone-slab", 12),
+    "stone": ("stone-door", 12),
     "glass": ("glass-bowl", 12),
     "rubber": ("rubber-box", 12),
 }
@@ -81,4 +81,5 @@ def main(src, dst):
         print(f"{material:7s} from {name:15s} {len(runs):3d} runs -> {len(out)/SR:5.1f}s  "
               + ", ".join(f"{a/SR:.1f}-{b/SR:.1f}" for a, b in runs[:8]) + (" ..." if len(runs) > 8 else ""))
 
-main(sys.argv[1], sys.argv[2])
+if __name__ == "__main__":
+    main(sys.argv[1], sys.argv[2])

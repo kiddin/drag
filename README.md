@@ -53,7 +53,7 @@ The sound isn't a loop that starts and stops. It tracks how you move:
 | **Rubber** | A box squeaking along on rubber feet | Balloon screech that rises as you stretch |
 | **Metal** | A metal stool pushed across a floor | Groaning squeal that rings out |
 | **Glass** | A glass bowl sliding on a countertop | Wet-finger squeak |
-| **Stone** | A stone slab grinding over tiles | Rumbling grind |
+| **Stone** | A heavy stone slab grinding like a dungeon door | Rumbling grind |
 
 Drags play real recordings. Resizes and knocks are synthesized from a physical model of the material.
 

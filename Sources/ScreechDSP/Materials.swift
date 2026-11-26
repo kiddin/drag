@@ -84,7 +84,7 @@ public enum Materials {
         b.fundamental = 85; b.aspect = 0.8; b.count = 36; b.jitter = 0.12
         b.t60 = 0.12; b.dampingFreq = 900; b.dampingExp = 1.2; b.tilt = 0.6; b.seed = 55
         var m = Material(id: "stone", name: "Stone", symbol: "mountain.2.fill",
-                         blurb: "A stone slab grinding over tiles, heavy thuds, rumbling stretch.", body: b)
+                         blurb: "A heavy stone slab grinding like a dungeon door, heavy thuds, rumbling stretch.", body: b)
         m.bodyMix = 0.6; m.reverbSend = 0.9
         m.impactsPerPixel = 1.5; m.impactTail = 1.8; m.contactHardness = 4500; m.contactGain = 1.2
         m.hiss = 0.5; m.textureDensity = 14; m.textureRoughness = 0.85
