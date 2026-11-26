@@ -16,7 +16,7 @@
   <a href="#how-it-works">How it works</a>
 </p>
 
-https://github.com/user-attachments/assets/4bc43086-351f-4768-9f8e-7f460bf5d252
+https://github.com/user-attachments/assets/9520e1b1-6c32-44b0-b282-a7a25ac95a7a
 
 <p align="center"><sub>Sound on. Rendered by the app's own engine: five drags, then a rubber and a metal resize.</sub></p>
 
