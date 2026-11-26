@@ -1,5 +1,5 @@
 APP     := Screech
-VERSION := 1.0.2
+VERSION := 1.0.3
 BUILD   := $(shell git rev-list --count HEAD 2>/dev/null || echo 1)
 
 BUNDLE  := dist/$(APP).app
