@@ -1,0 +1,6 @@
+.build/
+.swiftpm/
+dist/
+build/
+previews/
+.DS_Store
