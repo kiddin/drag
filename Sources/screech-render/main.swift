@@ -52,6 +52,53 @@ if CommandLine.arguments.contains("--analyze") {
     exit(0)
 }
 
+// screech-render --demo <dir> : data for the README demo video (see scripts/demo.swift).
+// Writes audio.wav (every segment back to back), frames.csv (window per video frame) and
+// hand.csv (hand speed vs sound level for the wood drag, every 10 ms).
+if let i = CommandLine.arguments.firstIndex(of: "--demo"), i + 1 < CommandLine.arguments.count {
+    let dir = URL(fileURLWithPath: CommandLine.arguments[i + 1])
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    let samples = DragSamples.load(from: URL(fileURLWithPath: "Resources/Samples"))
+    let segments: [(String, DemoMotion.Kind)] = [("wood", .drag), ("metal", .drag), ("stone", .drag), ("glass", .drag),
+                                                 ("rubber", .drag), ("rubber", .resize), ("metal", .resize)]
+    let sr = 48000, fps = 30.0, gap = 0.5
+    var left: [Float] = [], right: [Float] = []
+    var csv = "segment,material,kind,time,x,y,width,height,speed,held\n"
+    var hand = "time,speed,level\n"
+    for (index, (id, kind)) in segments.enumerated() {
+        let (l, r) = OfflineRender.gesture(kind, material: Materials.index(of: id), samples: samples)
+        let start = Double(left.count) / Double(sr)
+        left += l + [Float](repeating: 0, count: Int(gap * Double(sr)))
+        right += r + [Float](repeating: 0, count: Int(gap * Double(sr)))
+        let frames = DemoMotion.frames(kind)
+        let length = Double(l.count) / Double(sr) + gap
+        let name = Materials.all[Materials.index(of: id)].name
+        var t = 0.0
+        while t < length {
+            let f = frames.last { $0.time <= t }?.frame ?? frames[0].frame
+            let held = t < DemoMotion.duration
+            let v = held ? DemoMotion.profile(t).speed : 0
+            csv += String(format: "%d,%@,%@,%.4f,%.1f,%.1f,%.1f,%.1f,%.1f,%d\n", index, name,
+                          kind == .drag ? "drag" : "resize", start + t, f.x, f.y, f.width, f.height, v, held ? 1 : 0)
+            t += 1 / fps
+        }
+        if index == 0 {
+            let hop = sr / 100
+            for k in 0..<(l.count / hop) {
+                let tt = Double(k) / 100
+                var peak: Float = 0
+                for j in (k * hop)..<((k + 1) * hop) { peak = max(peak, abs(l[j]), abs(r[j])) }
+                hand += String(format: "%.2f,%.1f,%.4f\n", tt, tt < DemoMotion.duration ? DemoMotion.profile(tt).speed : 0, peak)
+            }
+        }
+    }
+    try OfflineRender.wav(left: left, right: right, sampleRate: sr).write(to: dir.appendingPathComponent("audio.wav"))
+    try csv.write(to: dir.appendingPathComponent("frames.csv"), atomically: true, encoding: .utf8)
+    try hand.write(to: dir.appendingPathComponent("hand.csv"), atomically: true, encoding: .utf8)
+    print("Wrote demo data to \(dir.path): \(String(format: "%.1f", Double(left.count) / Double(sr))) s")
+    exit(0)
+}
+
 // screech-render [output-dir] [--ring 0...1]
 var args = Array(CommandLine.arguments.dropFirst())
 var ring: Float = 1

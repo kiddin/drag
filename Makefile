@@ -9,7 +9,7 @@ ARCHIVE := dist/$(APP)-v$(VERSION).zip
 ARCHS   := --arch arm64 --arch x86_64
 TARGET  := $(shell [ -w /Applications ] && echo /Applications || echo $(HOME)/Applications)
 
-.PHONY: app run test install uninstall release previews icon samples clean
+.PHONY: app run test install uninstall release previews icon demo samples clean
 
 app:
 	swift build -c release --product $(APP) $(ARCHS)
@@ -56,6 +56,17 @@ previews:
 
 icon:
 	swift scripts/icon.swift
+
+# docs/demo.mp4 (with sound), docs/demo.gif and docs/hand.png for the README. Needs ffmpeg.
+demo:
+	swift run -c release screech-render --demo .build/demo
+	swift scripts/demo.swift .build/demo
+	mkdir -p docs
+	ffmpeg -loglevel error -y -framerate 30 -i .build/demo/frames/%05d.png -i .build/demo/audio.wav \
+		-c:v libx264 -pix_fmt yuv420p -crf 26 -preset slow -c:a aac -b:a 160k -movflags +faststart -shortest docs/demo.mp4
+	ffmpeg -loglevel error -y -t 9.7 -framerate 30 -i .build/demo/frames/%05d.png \
+		-vf "fps=15,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=96[p];[b][p]paletteuse=dither=bayer:bayer_scale=4" docs/demo.gif
+	cp .build/demo/hand.png docs/hand.png
 
 # Rebuild Resources/Samples from the original downloads (48 kHz mono 16-bit WAVs in SRC).
 samples:

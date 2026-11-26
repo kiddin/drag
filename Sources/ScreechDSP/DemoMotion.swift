@@ -10,7 +10,7 @@ public enum DemoMotion {
     public static let start = Rect(x: 500, y: 300, width: 900, height: 600)
 
     /// Speed (pt/s) and direction (+1 / -1) at time `t`.
-    static func profile(_ t: Double) -> (speed: Double, dir: Double) {
+    public static func profile(_ t: Double) -> (speed: Double, dir: Double) {
         func lerp(_ a: Double, _ b: Double, _ x: Double) -> Double { a + (b - a) * min(max(x, 0), 1) }
         let base: (Double, Double)
         switch t {
