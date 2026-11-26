@@ -12,15 +12,13 @@
 
 <p align="center">
   <a href="https://github.com/kiddin/drag/releases/latest"><b>Download</b></a> ·
-  <a href="https://github.com/kiddin/drag/raw/main/docs/demo.mp4"><b>Watch the demo (sound on)</b></a> ·
+  <a href="#try-it">Install</a> ·
   <a href="#how-it-works">How it works</a>
 </p>
 
-<p align="center">
-  <a href="https://github.com/kiddin/drag/raw/main/docs/demo.mp4"><img src="docs/demo.gif" width="720" alt="A window being dragged, with a hand speed meter"></a>
-</p>
+https://github.com/user-attachments/assets/04563d20-4ee6-4566-8635-ee8d123834a8
 
-<p align="center"><sub>The GIF is silent. <a href="https://github.com/kiddin/drag/raw/main/docs/demo.mp4">The video</a> (1 MB) has the sound, rendered by the app's own engine.</sub></p>
+<p align="center"><sub>Sound on. Rendered by the app's own engine: five drags, then a rubber and a metal resize.</sub></p>
 
 ---
 
@@ -132,7 +130,7 @@ make install    # build, copy to Applications and launch
 make run        # build and run it from the terminal
 make test       # DSP, motion analysis and recording playback tests
 make previews   # render previews/<material>-{drag,resize}.wav from a scripted gesture
-make demo       # render docs/demo.mp4, docs/demo.gif and docs/hand.png (needs ffmpeg)
+make demo       # render docs/demo.mp4 and docs/hand.png (needs ffmpeg)
 make release    # tests, then dist/Screech-vX.Y.Z.zip
 make icon       # redraw Resources/AppIcon.icns
 ```
