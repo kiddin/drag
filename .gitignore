@@ -4,3 +4,4 @@ dist/
 build/
 previews/
 .DS_Store
+__pycache__/
