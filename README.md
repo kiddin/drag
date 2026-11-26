@@ -24,7 +24,7 @@ https://github.com/user-attachments/assets/04563d20-4ee6-4566-8635-ee8d123834a8
 
 ## Try it
 
-1. Download **[Screech-v1.0.0.zip](https://github.com/kiddin/drag/releases/latest)** and unzip it.
+1. Download the **[latest release zip](https://github.com/kiddin/drag/releases/latest)** and unzip it.
 2. In Terminal, in the unzipped folder, run `./install.sh`.
 3. Drag any window. Pick a material from the waveform icon in the menu bar.
 

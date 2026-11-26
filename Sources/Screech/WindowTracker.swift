@@ -233,8 +233,7 @@ final class WindowTracker: @unchecked Sendable {
     }
 
     static func frame(of id: CGWindowID) -> CGRect? {
-        // The cheapest window-server query for a single window.
-        guard let list = CGWindowListCreateDescriptionFromArray([NSNumber(value: id)] as CFArray) as? [[String: Any]],
+        guard let list = CGWindowListCopyWindowInfo([.optionIncludingWindow], id) as? [[String: Any]],
               let info = list.first else { return nil }
         return bounds(info)
     }
