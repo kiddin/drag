@@ -74,19 +74,21 @@ Drags play real recordings. Resizes and knocks are synthesized from a physical m
 - **No network.** Screech contains no networking code and never checks for updates.
 - **No permissions.** No Accessibility, no Screen Recording, no Input Monitoring, no microphone. It only sees which mouse button is down and where windows are, both of which macOS shares with any app.
 - **No telemetry.** The only thing it stores is its own preferences, in `~/Library/Preferences/dev.screech.Screech.plist`.
-- **Idle means idle.** The audio engine starts when you press the mouse and pauses 20 seconds later, so it uses no CPU in between.
+- **Idle means idle.** Nothing runs between clicks: no timers, no polling. The audio engine starts when you grab a window and pauses 20 seconds later.
 
 ## How it works
 
 <details>
 <summary><b>Watching windows</b></summary>
 
-A global mouse monitor reports button presses (this needs no permission, unlike keyboard monitoring). On a press, Screech finds the window under the pointer in `CGWindowListCopyWindowInfo` and samples that one window's bounds 120 times a second until the button comes up. Window *bounds* are public; titles and contents, which would need Screen Recording, are never read.
+A global mouse monitor reports button presses (this needs no permission, unlike keyboard monitoring). It listens for presses only, and its handler just notes where the press was and hands off to a background queue, so it never holds up the event stream that other input drivers, such as Wacom's, share.
+
+On a press, Screech finds the window under the pointer in `CGWindowListCopyWindowInfo` and samples that one window's bounds until the button comes up; it reads the release from the button state, not from another event. A press on the title bar, toolbar or an edge, where windows are moved and resized, is sampled 60 times a second. A press in the content (drawing, selecting text) is sampled 10 times a second and speeds up only if the window actually starts moving; after a second without movement it slows down again. Window *bounds* are public; titles and contents, which would need Screen Recording, are never read.
 
 `MotionAnalyzer` turns those frames into a gesture:
 
 1. **Drag or resize.** If the size changed, it is a resize; if only the origin moved, a drag. The first motion decides, so a drag that crosses screens never flips to resize.
-2. **Speed.** Measured between frames that actually changed, because the window server updates at 60 Hz even when sampled at 120 Hz. Speed falls to zero after 50 ms without movement (90 ms for resizes).
+2. **Speed.** Measured between frames that actually changed, so a repeated frame never reads as a stop. Speed falls to zero after 50 ms without movement (90 ms for resizes).
 3. **Bumps.** A sharp reversal of direction triggers a knock.
 4. **Pan and weight.** The window's position across all screens pans the sound; bigger windows make knocks and squeals lower.
 

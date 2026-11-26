@@ -1,9 +1,17 @@
 import AppKit
 import ScreechDSP
 
-/// Watches mouse presses system-wide and samples the frame of the window under the cursor
+/// Notices mouse presses system-wide and samples the frame of the window under the cursor
 /// while the button is held. Needs no Accessibility or Screen Recording permission:
-/// mouse-button monitors are allowed, and window *bounds* are public in CGWindowList.
+/// mouse-press monitors are allowed, and window *bounds* are public in CGWindowList.
+///
+/// It stays out of the way of the event stream and the window server, which tablet drivers
+/// (Wacom) share:
+/// - it listens for presses only; the release is read from the button state while sampling;
+/// - the monitor's handler only records where the press was and hands off to a background queue;
+/// - a press in a window's content (drawing, selecting) is sampled 10 times a second, not 60,
+///   and only speeds up once the window really moves or resizes;
+/// - audio starts only for presses that look like a drag, or once the window moves.
 final class WindowTracker: @unchecked Sendable {
     struct Status: Sendable {
         var mode: MotionMode
@@ -16,7 +24,7 @@ final class WindowTracker: @unchecked Sendable {
     var onRelease: (@MainActor () -> Void)?
     var onStatus: (@MainActor (Status) -> Void)?
 
-    private var monitors: [Any] = []
+    private var monitor: Any?   // main thread
     private let queue = DispatchQueue(label: "screech.tracker", qos: .userInteractive)
 
     // Confined to `queue`
@@ -25,64 +33,91 @@ final class WindowTracker: @unchecked Sendable {
     private var windowID: CGWindowID = 0
     private var appName = ""
     private var lastStatus: Double = 0
+    private var fast = false
+    private var lastFrame = CGRect.null
+    private var lastChange: Double = 0
+    private var woke = false
     private var demoFrames: [(time: Double, frame: ScreechDSP.Rect)] = []
     private var demoIndex = 0
     private var demoStart: Double = 0
 
-    static let sampleRate = 120.0
+    /// While a window is moving. The window server redraws at 60 Hz on most displays.
+    static let fastRate = 60.0
+    /// While the press is not moving anything: just enough to notice it start.
+    static let slowRate = 10.0
+    /// Seconds without movement before sampling slows down again.
+    static let settle = 1.0
+    /// The scripted preview gesture.
+    static let demoRate = 120.0
+    /// Height of the title bar and toolbar band, and the width of the resize edges, in points.
+    static let titleBand: CGFloat = 90
+    static let edge: CGFloat = 8
 
     init(control: ControlBlock) {
         self.control = control
     }
 
     @MainActor func start() {
-        guard monitors.isEmpty else { return }
-        let monitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp]) { [weak self] event in
-            MainActor.assumeIsolated {
-                if event.type == .leftMouseDown { self?.mouseDown() } else { self?.mouseUp() }
-            }
+        guard monitor == nil else { return }
+        monitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+            // Keep this tiny: note where the press was and leave.
+            guard let self, let point = event.cgEvent?.location ?? CGEvent(source: nil)?.location else { return }
+            self.queue.async { self.press(at: point) }
         }
-        if let monitor { monitors.append(monitor) }
     }
 
     @MainActor func stop() {
-        monitors.forEach(NSEvent.removeMonitor)
-        monitors.removeAll()
+        if let monitor { NSEvent.removeMonitor(monitor) }
+        monitor = nil
         queue.async { self.end(released: false) }
     }
 
-    // MARK: Mouse
+    // MARK: Press (on `queue`)
 
-    @MainActor private func mouseDown() {
-        guard let primary = NSScreen.screens.first else { return }
-        let p = NSEvent.mouseLocation
-        // CGWindowList uses a top-left origin on the primary display.
-        let point = CGPoint(x: p.x, y: primary.frame.maxY - p.y)
-        guard let hit = Self.window(at: point) else { return }
-        let desktop = NSScreen.screens.reduce(CGRect.null) { $0.union($1.frame) }
-        onPress?()
-        queue.async { self.begin(hit.id, frame: hit.frame, app: hit.app, desktop: desktop) }
+    private static var buttonDown: Bool { CGEventSource.buttonState(.combinedSessionState, button: .left) }
+
+    /// `point` is global, top-left origin, like window bounds.
+    private func press(at point: CGPoint) {
+        guard Self.buttonDown, let hit = Self.window(at: point) else { return }
+        end(released: false)
+        windowID = hit.id
+        appName = hit.app
+        let now = CACurrentMediaTime()
+        let desktop = Self.desktop()
+        analyzer.begin(frame: Self.rect(hit.frame), time: now, desktopMinX: desktop.minX, desktopWidth: desktop.width)
+        control.sizeScale = Float(analyzer.sizeScale)
+        lastFrame = hit.frame
+        lastChange = now
+        fast = Self.isGrip(point, in: hit.frame)
+        woke = false
+        if fast { wake() }
+        startTimer(rate: fast ? Self.fastRate : Self.slowRate) { [weak self] in self?.sample() }
     }
 
-    @MainActor private func mouseUp() {
-        queue.async { self.end(released: true) }
+    /// The title bar and toolbar band, or an edge: where windows are moved and resized.
+    static func isGrip(_ p: CGPoint, in f: CGRect) -> Bool {
+        p.y < f.minY + titleBand || p.y > f.maxY - edge || p.x < f.minX + edge || p.x > f.maxX - edge
+    }
+
+    private func wake() {
+        guard !woke else { return }
+        woke = true
+        DispatchQueue.main.async { MainActor.assumeIsolated { self.onPress?() } }
+    }
+
+    /// Union of all displays, in the same coordinates as window bounds.
+    private static func desktop() -> CGRect {
+        var count: UInt32 = 0
+        CGGetActiveDisplayList(0, nil, &count)
+        var ids = [CGDirectDisplayID](repeating: 0, count: Int(count))
+        CGGetActiveDisplayList(count, &ids, &count)
+        return ids.prefix(Int(count)).reduce(CGRect.null) { $0.union(CGDisplayBounds($1)) }
     }
 
     // MARK: Sampling (on `queue`)
 
-    private func begin(_ id: CGWindowID, frame: CGRect, app: String, desktop: CGRect) {
-        end(released: false)
-        windowID = id
-        appName = app
-        analyzer.begin(frame: Self.rect(frame), time: CACurrentMediaTime(),
-                       desktopMinX: desktop.minX, desktopWidth: desktop.width)
-        control.sizeScale = Float(analyzer.sizeScale)
-        startTimer { [weak self] in self?.sample() }
-    }
-
     private func sample() {
-        // Safety net in case the mouse-up event was missed.
-        guard CGEventSource.buttonState(.combinedSessionState, button: .left) else {
+        guard Self.buttonDown else {
             end(released: true)
             return
         }
@@ -91,9 +126,23 @@ final class WindowTracker: @unchecked Sendable {
             return
         }
         let now = CACurrentMediaTime()
+        if frame != lastFrame {
+            lastFrame = frame
+            lastChange = now
+            if !fast { setRate(fast: true) }
+        } else if fast, now - lastChange > Self.settle {
+            setRate(fast: false)
+        }
         let out = analyzer.update(frame: Self.rect(frame), time: now)
+        if out.mode != .idle { wake() }
         control.apply(out)
         publishStatus(out, now: now)
+    }
+
+    private func setRate(fast: Bool) {
+        self.fast = fast
+        let interval = 1 / (fast ? Self.fastRate : Self.slowRate)
+        timer?.schedule(deadline: .now() + (fast ? 0 : interval), repeating: interval, leeway: .milliseconds(fast ? 1 : 20))
     }
 
     private func end(released: Bool) {
@@ -112,9 +161,9 @@ final class WindowTracker: @unchecked Sendable {
         }
     }
 
-    private func startTimer(_ handler: @escaping () -> Void) {
-        let t = DispatchSource.makeTimerSource(flags: .strict, queue: queue)
-        t.schedule(deadline: .now(), repeating: 1 / Self.sampleRate, leeway: .microseconds(500))
+    private func startTimer(rate: Double, _ handler: @escaping () -> Void) {
+        let t = DispatchSource.makeTimerSource(queue: queue)
+        t.schedule(deadline: .now(), repeating: 1 / rate, leeway: .milliseconds(1))
         t.setEventHandler(handler: handler)
         timer = t
         t.resume()
@@ -135,13 +184,13 @@ final class WindowTracker: @unchecked Sendable {
     func playDemo(_ kind: DemoMotion.Kind) {
         queue.async {
             self.end(released: false)
-            self.demoFrames = DemoMotion.frames(kind, rate: Self.sampleRate)
+            self.demoFrames = DemoMotion.frames(kind, rate: Self.demoRate)
             self.demoIndex = 0
             self.demoStart = CACurrentMediaTime()
             self.appName = "Preview"
             self.analyzer.begin(frame: DemoMotion.start, time: 0, desktopMinX: 0, desktopWidth: 2000)
             self.control.sizeScale = Float(self.analyzer.sizeScale)
-            self.startTimer { self.demoStep() }  // cycle broken when the timer is cancelled
+            self.startTimer(rate: Self.demoRate) { self.demoStep() }  // cycle broken when the timer is cancelled
         }
     }
 
@@ -184,7 +233,8 @@ final class WindowTracker: @unchecked Sendable {
     }
 
     static func frame(of id: CGWindowID) -> CGRect? {
-        guard let list = CGWindowListCopyWindowInfo([.optionIncludingWindow], id) as? [[String: Any]],
+        // The cheapest window-server query for a single window.
+        guard let list = CGWindowListCreateDescriptionFromArray([NSNumber(value: id)] as CFArray) as? [[String: Any]],
               let info = list.first else { return nil }
         return bounds(info)
     }

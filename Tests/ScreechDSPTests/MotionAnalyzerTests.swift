@@ -32,6 +32,20 @@ final class MotionAnalyzerTests: XCTestCase {
         }
     }
 
+    func testDragSpeedAtTheAppsSixtyHertzSamplingWithJitter() {
+        // The app samples at 60 Hz with a slightly late timer; the window moves 600 pt/s.
+        var a = MotionAnalyzer()
+        a.begin(frame: start, time: 0, desktopMinX: 0, desktopWidth: 2000)
+        var outs: [MotionOutput] = []
+        for i in 1...60 {
+            let t = Double(i) / 60 + (i % 3 == 0 ? 0.002 : 0)
+            let f = Rect(x: start.x + 600 * t, y: start.y, width: start.width, height: start.height)
+            outs.append(a.update(frame: f, time: t))
+        }
+        XCTAssertTrue(outs.suffix(40).allSatisfy { $0.mode == .drag })
+        for o in outs.suffix(30) { XCTAssertEqual(o.speed, 600, accuracy: 60) }
+    }
+
     func testResizeFromLeftEdgeIsResize() {
         // Left-edge resize moves the origin and changes the width together.
         let outs = run(start, steps: 40) { _, f in f.x -= 5; f.width += 5 }
